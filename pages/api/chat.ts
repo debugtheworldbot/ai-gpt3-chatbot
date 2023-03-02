@@ -30,7 +30,7 @@ const generatePromptFromMessages = (messages: Message[]) => {
   }
 
   messagesWithoutFirstConvo.forEach((message: Message) => {
-    const name = message.who === 'user' ? userName : botName
+    const name = message.role === 'user' ? userName : botName
     prompt += `\n${name}: ${message.message}`
   })
   return prompt
@@ -51,9 +51,12 @@ export default async function handler(req: NextRequest) {
     ? `${process.env.AI_PROMPT}${messagesPrompt}\n${botName}: `
     : defaultPrompt
 
+  console.log('messagesPrompt', messagesPrompt)
+
   const payload = {
-    model: 'text-davinci-003',
-    prompt: finalPrompt,
+    model: 'gpt-3.5-turbo',
+    // prompt: finalPrompt,
+    messages: body.messages.map((m: Message) => ({ role: m.role, content: m.message })),
     temperature: process.env.AI_TEMP ? parseFloat(process.env.AI_TEMP) : 0.7,
     max_tokens: process.env.AI_MAX_TOKENS
       ? parseInt(process.env.AI_MAX_TOKENS)
@@ -74,7 +77,7 @@ export default async function handler(req: NextRequest) {
     requestHeaders['OpenAI-Organization'] = process.env.OPENAI_API_ORG
   }
 
-  const response = await fetch('https://api.openai.com/v1/completions', {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     headers: requestHeaders,
     method: 'POST',
     body: JSON.stringify(payload),
@@ -82,6 +85,7 @@ export default async function handler(req: NextRequest) {
 
   const data = await response.json()
 
+  console.log('data', data)
   if (data.error) {
     console.error('OpenAI API error: ', data.error)
     return NextResponse.json({
@@ -90,5 +94,5 @@ export default async function handler(req: NextRequest) {
   }
 
   // return response with 200 and stringify json text
-  return NextResponse.json({ text: data.choices[0].text })
+  return NextResponse.json({ text: data.choices[0].message })
 }
