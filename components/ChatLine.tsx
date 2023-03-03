@@ -1,4 +1,5 @@
 import clsx from 'clsx'
+import { marked } from 'marked'
 
 export type Message = {
 	role: 'bot' | 'user' | 'assistant' | undefined
@@ -37,14 +38,13 @@ export function ChatLine({ role = 'assistant', message }: Message) {
 									{role == 'assistant' ? 'AI' : 'You'}
 								</a>
 							</p>
-							<p
+							<article
 								className={clsx(
-									'text ',
+									'my-2 w-full break-all prose dark:prose-invert',
 									role == 'assistant' ? 'font-semibold ' : 'text-gray-400'
 								)}
-							>
-								{formatteMessage}
-							</p>
+								dangerouslySetInnerHTML={{ __html: marked(message) }}
+							/>
 						</div>
 					</div>
 				</div>
