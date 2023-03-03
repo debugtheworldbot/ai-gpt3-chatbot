@@ -47,7 +47,6 @@ export const config = {
 
 export default async function handler(req: NextRequest) {
   // read body from request
-  console.log('req', req)
   const body = await req.json()
 
   // const messages = req.body.messages
@@ -66,7 +65,7 @@ export default async function handler(req: NextRequest) {
     presence_penalty: 0,
     stop: [`${botName}:`, `${userName}:`],
     user: body?.user,
-    // stream: true
+    stream: true
   }
 
   const requestHeaders: Record<string, string> = {
@@ -84,14 +83,27 @@ export default async function handler(req: NextRequest) {
     body: JSON.stringify(payload),
   })
 
+  // let result: any[] = []
+  // const decoder = new TextDecoder()
+
+  // response.body!.pipeTo(new WritableStream({
+  //   write(chunk) {
+  //     const data = decoder.decode(chunk)
+  //     result.push(data)
+  //   }
+  // }))
+  // console.log('result', result)
+
+  // return
+
+
+
   const encoder = new TextEncoder()
   const decoder = new TextDecoder()
-  console.log(response)
-
-  return response
   const stream = new ReadableStream({
     async start(controller) {
       const streamParser = (event: ParsedEvent | ReconnectInterval) => {
+
         if (event.type === 'event') {
           const data = event.data
           if (data === '[DONE]') {
@@ -99,55 +111,47 @@ export default async function handler(req: NextRequest) {
             return
           }
           const json = JSON.parse(data)
-          console.log('after', json)
-
-          // try {
-          //   // const json = {
-          //   //   id: 'chatcmpl-6pqVJi7eNrAmZ2jdkGkp4DYisDu6K',
-          //   //   object: 'chat.completion.chunk',
-          //   //   created: 1677814573,
-          //   //   model: 'gpt-3.5-turbo-0301',
-          //   //   choices: [ { delta: { content: ' I' }, index: 0, finish_reason: null } ]
-          //   // }
+          try {
+            // const json = {
+            //   id: 'chatcmpl-6pqVJi7eNrAmZ2jdkGkp4DYisDu6K',
+            //   object: 'chat.completion.chunk',
+            //   created: 1677814573,
+            //   model: 'gpt-3.5-turbo-0301',
+            //   choices: [ { delta: { content: ' I' }, index: 0, finish_reason: null } ]
+            // }
 
 
-          //   const text = json.choices[0].delta?.content
-          //   if (!!text) {
+            const text = json.choices[0].delta?.content
 
-          //     const queue = encoder.encode(text)
-          //     controller.enqueue(queue)
+            const queue = encoder.encode(text)
+            controller.enqueue(queue)
 
-          //   }
-          // } catch (e) {
-          //   console.log('error' + e)
-          // }
+          } catch (e) {
+            console.log('error' + e)
+          }
         }
+
       }
-
-      // const parser = createParser(streamParser)
-      // response.body!.pipeTo(new WritableStream({
-      //   write(chunk) {
-      //     const data = decoder.decode(chunk)
-
-      //     parser.feed(data)
-      //   }
-      // }))
+      const parser = createParser(streamParser)
+      for await (const chunk of response.body as any) {
+        parser.feed(decoder.decode(chunk))
+      }
     },
   })
-  const res = NextResponse.json(stream)
-  console.log('res', res)
+  const res = new Response(stream)
   return res
 
-  const data = await response.json()
+  // return NextResponse.json(stream)
 
-  console.log('data', data)
-  if (data.error) {
-    console.error('OpenAI API error: ', data.error)
-    return NextResponse.json({
-      text: `ERROR with API integration. ${data.error.message}`,
-    })
-  }
 
-  // return response with 200 and stringify json text
-  return NextResponse.json({ text: data.choices[0].message })
+  // console.log('data', data)
+  // if (data.error) {
+  //   console.error('OpenAI API error: ', data.error)
+  //   return NextResponse.json({
+  //     text: `ERROR with API integration. ${data.error.message}`,
+  //   })
+  // }
+
+  // // return response with 200 and stringify json text
+  // return NextResponse.json({ text: data.choices[0].message })
 }

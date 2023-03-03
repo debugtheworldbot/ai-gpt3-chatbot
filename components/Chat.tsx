@@ -78,16 +78,28 @@ export function Chat() {
 				user: cookie[COOKIE_NAME],
 			}),
 		})
-		const data = await response.json()
 
+		const data = response.body
+		if (!data) {
+			return
+		}
+		const reader = data.getReader()
+		const decoder = new TextDecoder()
+		let done = false
+
+		let currentResponse: string[] = []
+		while (!done) {
+			const { value, done: doneReading } = await reader.read()
+			done = doneReading
+			const chunkValue = decoder.decode(value)
+			// currentResponse = [...currentResponse, message, chunkValue];
+			currentResponse = [...currentResponse, chunkValue]
+			setMessages([
+				...newMessages,
+				{ message: currentResponse.join(''), role: 'assistant' } as Message,
+			])
+		}
 		// strip out white spaces from the bot message
-		console.log('dddddd', data)
-		const botNewMessage = data.text.content.trim()
-
-		setMessages([
-			...newMessages,
-			{ message: botNewMessage, role: 'assistant' } as Message,
-		])
 		setLoading(false)
 	}
 
