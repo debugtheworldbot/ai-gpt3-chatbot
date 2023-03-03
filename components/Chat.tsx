@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from './Button'
 import { type Message, ChatLine } from './ChatLine'
 import { useCookies } from 'react-cookie'
@@ -48,6 +48,14 @@ export function Chat() {
 	const [messages, setMessages] = useState<Message[]>(initialMessages)
 	const [input, setInput] = useState('')
 	const [cookie, setCookie] = useCookies([COOKIE_NAME])
+	const messagesEndRef = useRef<any>(null)
+
+	const scrollToBottom = () => {
+		messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+	}
+	useEffect(() => {
+		scrollToBottom()
+	}, [messages])
 
 	useEffect(() => {
 		if (!cookie[COOKIE_NAME]) {
@@ -116,6 +124,7 @@ export function Chat() {
 				setInput={setInput}
 				sendMessage={sendMessage}
 			/>
+			<div ref={messagesEndRef}></div>
 		</div>
 	)
 }
