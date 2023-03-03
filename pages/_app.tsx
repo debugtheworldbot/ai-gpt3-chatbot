@@ -8,7 +8,6 @@ import '@vercel/examples-ui/globals.css'
 
 function App({ Component, pageProps }: AppProps) {
 	const Layout = getLayout<LayoutProps>(Component)
-	console.log('== process.env.OPENAI_API_KEY ==', process.env.OPENAI_API_KEY)
 
 	return (
 		<Layout

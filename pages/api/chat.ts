@@ -1,3 +1,4 @@
+import { createParser, ParsedEvent, ReconnectInterval } from 'eventsource-parser'
 import { type NextRequest, NextResponse } from 'next/server'
 import { initialMessages } from '../../components/Chat'
 import { type Message } from '../../components/ChatLine'
@@ -15,6 +16,10 @@ const firstMessge = initialMessages[0].message
 const generatePromptFromMessages = (messages: Message[]) => {
   console.log('== INITIAL messages ==', messages)
 
+  return messages.map(m => ({
+    role: m.role,
+    content: m.message
+  }))
   let prompt = ''
 
   // add first user message to prompt
@@ -42,14 +47,11 @@ export const config = {
 
 export default async function handler(req: NextRequest) {
   // read body from request
+  console.log('req', req)
   const body = await req.json()
 
   // const messages = req.body.messages
   const messagesPrompt = generatePromptFromMessages(body.messages)
-  const defaultPrompt = `I am Friendly AI Assistant. \n\nThis is the conversation between AI Bot and a news reporter.\n\n${botName}: ${firstMessge}\n${userName}: ${messagesPrompt}\n${botName}: `
-  const finalPrompt = process.env.AI_PROMPT
-    ? `${process.env.AI_PROMPT}${messagesPrompt}\n${botName}: `
-    : defaultPrompt
 
   console.log('messagesPrompt', messagesPrompt)
 
@@ -64,6 +66,7 @@ export default async function handler(req: NextRequest) {
     presence_penalty: 0,
     stop: [`${botName}:`, `${userName}:`],
     user: body?.user,
+    // stream: true
   }
 
   const requestHeaders: Record<string, string> = {
@@ -80,6 +83,60 @@ export default async function handler(req: NextRequest) {
     method: 'POST',
     body: JSON.stringify(payload),
   })
+
+  const encoder = new TextEncoder()
+  const decoder = new TextDecoder()
+  console.log(response)
+
+  return response
+  const stream = new ReadableStream({
+    async start(controller) {
+      const streamParser = (event: ParsedEvent | ReconnectInterval) => {
+        if (event.type === 'event') {
+          const data = event.data
+          if (data === '[DONE]') {
+            controller.close()
+            return
+          }
+          const json = JSON.parse(data)
+          console.log('after', json)
+
+          // try {
+          //   // const json = {
+          //   //   id: 'chatcmpl-6pqVJi7eNrAmZ2jdkGkp4DYisDu6K',
+          //   //   object: 'chat.completion.chunk',
+          //   //   created: 1677814573,
+          //   //   model: 'gpt-3.5-turbo-0301',
+          //   //   choices: [ { delta: { content: ' I' }, index: 0, finish_reason: null } ]
+          //   // }
+
+
+          //   const text = json.choices[0].delta?.content
+          //   if (!!text) {
+
+          //     const queue = encoder.encode(text)
+          //     controller.enqueue(queue)
+
+          //   }
+          // } catch (e) {
+          //   console.log('error' + e)
+          // }
+        }
+      }
+
+      // const parser = createParser(streamParser)
+      // response.body!.pipeTo(new WritableStream({
+      //   write(chunk) {
+      //     const data = decoder.decode(chunk)
+
+      //     parser.feed(data)
+      //   }
+      // }))
+    },
+  })
+  const res = NextResponse.json(stream)
+  console.log('res', res)
+  return res
 
   const data = await response.json()
 
