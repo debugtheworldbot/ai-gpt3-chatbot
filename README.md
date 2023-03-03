@@ -1,4 +1,4 @@
-# AI Chat GPT-3 example
+# AI Chat using GPT-3.5 turbo with nextjs  
 
 This example shows how to implement a simple chat bot using Next.js, API Routes, and [OpenAI API](https://beta.openai.com/docs/api-reference/completions/create).
 
